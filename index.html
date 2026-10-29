@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>所見AIアシスタント Web版</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="所見AI">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<style>
+:root{
+  --bg:#f6f4ee; --card:#ffffff; --ink:#26282e; --muted:#7a7f8a; --line:#e6e1d4;
+  --indigo:#2e3a8c; --indigo-d:#232c6b; --gold:#c9a227; --gold-soft:#f5ecd2;
+  --ok:#1e8e5a; --warn:#c77c02; --bad:#c0392b; --chip:#efece2;
+  --sheet:#ffffff; --shadow:0 8px 30px rgba(35,44,107,.16);
+}
+[data-theme="dark"]{
+  --bg:#16181f; --card:#1f222c; --ink:#eceef4; --muted:#9aa0ae; --line:#333847;
+  --indigo:#7d8ce8; --indigo-d:#aab6ff; --gold:#d9b64a; --gold-soft:#33301e;
+  --chip:#262a36; --sheet:#232633; --shadow:0 8px 30px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0; font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Noto Sans JP",sans-serif; background:var(--bg); color:var(--ink); padding-bottom:86px}
+button{font-family:inherit; cursor:pointer}
+input,select,textarea{font-family:inherit; font-size:16px; color:var(--ink)}
+textarea{line-height:1.8}
+/* header */
+header{position:sticky; top:0; z-index:40; background:linear-gradient(120deg,#232c6b,#2e3a8c 60%,#3a49a8); color:#fff; padding:10px 16px; display:flex; align-items:center; gap:12px; box-shadow:0 2px 10px rgba(20,25,60,.25)}
+header img{width:38px; height:38px; border-radius:9px; box-shadow:0 2px 6px rgba(0,0,0,.3)}
+header .ttl{font-size:17px; font-weight:700; letter-spacing:.04em}
+header .sub{font-size:11px; opacity:.85}
+header .sp{flex:1}
+.hbtn{background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.25); border-radius:9px; padding:7px 12px; font-size:13px}
+.hbtn:active{background:rgba(255,255,255,.3)}
+main{max-width:1120px; margin:0 auto; padding:16px 14px 30px}
+.view{display:none}
+.view.active{display:block; animation:fade .18s ease}
+@keyframes fade{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
+h2.sec{font-size:16px; margin:20px 2px 10px; display:flex; align-items:center; gap:8px}
+h2.sec:first-child{margin-top:2px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px}
+.btn{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:10px; padding:9px 14px; font-size:14px; font-weight:600}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--indigo); border-color:var(--indigo); color:#fff}
+[data-theme="dark"] .btn.primary{color:#14162b}
+.btn.gold{background:linear-gradient(120deg,#b8912a,#d9b64a); border-color:#b8912a; color:#fff}
+.btn.danger{color:var(--bad); border-color:#ecc9c4}
+.btn.small{padding:6px 10px; font-size:13px; border-radius:8px}
+.btn:disabled{opacity:.45; cursor:default}
+.btn.block{width:100%; justify-content:center}
+.row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.grow{flex:1}
+.muted{color:var(--muted); font-size:13px}
+.small{font-size:12px}
+select,.txtin{border:1px solid var(--line); background:var(--card); border-radius:10px; padding:9px 10px}
+textarea.ta{width:100%; border:1px solid var(--line); background:var(--card); border-radius:12px; padding:12px; resize:vertical}
+label.lb{display:block; font-size:13px; font-weight:700; margin:12px 0 6px}
+label.lb:first-child{margin-top:0}
+/* class cards */
+.classcard{display:flex; gap:12px; align-items:center; width:100%; text-align:left; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:10px; color:var(--ink)}
+.classcard:active{transform:scale(.99)}
+.classcard .nm{font-size:16px; font-weight:700}
+.classcard .bar{height:8px; background:var(--chip); border-radius:99px; overflow:hidden; margin-top:8px}
+.classcard .bar>i{display:block; height:100%; background:linear-gradient(90deg,var(--indigo),var(--gold)); border-radius:99px}
+.badge{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; background:var(--gold-soft); color:#8a6d14; border:1px solid #e3d194}
+[data-theme="dark"] .badge{color:var(--gold)}
+.badge.blue{background:#e4e8fb; color:var(--indigo-d); border-color:#c3cbF3}
+[data-theme="dark"] .badge.blue{background:#262c52; color:#aab6ff; border-color:#39448c}
+/* editor */
+.pager{display:flex; align-items:center; gap:8px; margin-bottom:10px}
+.pager .who{flex:1; text-align:center}
+.pager .who .nm{font-size:19px; font-weight:800}
+.pnav{width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--card); font-size:17px; color:var(--ink)}
+.chips{display:flex; gap:7px; overflow-x:auto; padding:4px 2px 10px; scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:99px; padding:7px 13px; font-size:13.5px; font-weight:600; position:relative}
+.chip.on{background:var(--indigo); color:#fff; border-color:var(--indigo)}
+[data-theme="dark"] .chip.on{color:#14162b}
+.chip .dot{position:absolute; top:-3px; right:-3px; width:10px; height:10px; border-radius:50%; background:var(--ok); border:2px solid var(--bg); display:none}
+.chip.done .dot{display:block}
+.meter{display:flex; align-items:center; gap:10px; margin:8px 2px}
+.meter .bar{flex:1; height:8px; background:var(--chip); border-radius:99px; overflow:hidden}
+.meter .bar>i{display:block; height:100%; background:var(--ok); transition:width .2s}
+.meter.over .bar>i{background:var(--bad)}
+.meter .cnt{font-size:13px; font-weight:700; min-width:118px; text-align:right}
+.saveState{font-size:12px; color:var(--muted)}
+.saveState.dirty{color:var(--warn); font-weight:700}
+.actionbar{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+.aiBtn{flex:1; min-width:150px; justify-content:center; background:linear-gradient(120deg,#2e3a8c,#5a3a8c); color:#fff; border:none; border-radius:12px; padding:13px; font-size:15px; font-weight:800; box-shadow:0 4px 14px rgba(46,58,140,.35)}
+.aiBtn:active{transform:scale(.98)}
+.studentlist{display:none}
+@media(min-width:920px){
+  .editorWrap{display:grid; grid-template-columns:270px 1fr; gap:16px; align-items:start}
+  .studentlist{display:block; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:8px; max-height:74vh; overflow:auto}
+  .studentlist button{display:flex; width:100%; gap:8px; align-items:center; text-align:left; background:none; border:none; border-radius:10px; padding:9px 10px; font-size:14px; color:var(--ink)}
+  .studentlist button.on{background:var(--gold-soft); font-weight:700}
+  .studentlist .mini{margin-left:auto; font-size:11px; color:var(--muted)}
+  .pager .pnav{display:none}
+}
+/* sheets */
+.backdrop{position:fixed; inset:0; background:rgba(15,17,30,.5); opacity:0; pointer-events:none; transition:opacity .22s; z-index:60}
+.backdrop.show{opacity:1; pointer-events:auto}
+.sheet{position:fixed; left:0; right:0; bottom:0; z-index:61; background:var(--sheet); border-radius:20px 20px 0 0; box-shadow:var(--shadow); transform:translateY(105%); transition:transform .26s cubic-bezier(.3,.9,.3,1); max-height:88vh; display:flex; flex-direction:column; padding:10px 16px calc(16px + env(safe-area-inset-bottom)); max-width:760px; margin:0 auto}
+.sheet.show{transform:none}
+.sheet .grab{width:44px; height:5px; border-radius:99px; background:var(--line); margin:2px auto 10px}
+.sheet h3{margin:2px 0 10px; font-size:16px}
+.sheet .body{overflow-y:auto; -webkit-overflow-scrolling:touch}
+.segtabs{display:flex; background:var(--chip); border-radius:11px; padding:3px; gap:3px; margin-bottom:12px}
+.segtabs button{flex:1; border:none; background:none; padding:8px 4px; border-radius:9px; font-size:13.5px; font-weight:700; color:var(--muted)}
+.segtabs button.on{background:var(--card); color:var(--ink); box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.tmplItem{border:1px solid var(--line); border-radius:12px; padding:11px 12px; margin-bottom:8px; background:var(--card); text-align:left; width:100%; color:var(--ink)}
+.tmplItem .tx{font-size:14.5px; line-height:1.7}
+.tmplItem .meta{margin-top:5px; display:flex; gap:6px; align-items:center}
+.fav{color:var(--gold); font-size:15px; background:none; border:none; padding:2px 4px}
+/* progress grid */
+.gridwrap{overflow-x:auto}
+table.grid{border-collapse:collapse; width:100%; font-size:12.5px}
+table.grid th,table.grid td{border:1px solid var(--line); padding:6px 7px; text-align:center; white-space:nowrap}
+table.grid th{background:var(--chip); font-weight:700}
+table.grid td:first-child,table.grid th:first-child{text-align:left; position:sticky; left:0; background:var(--card); font-weight:600}
+table.grid td.done{background:#e2f3ea; color:var(--ok); font-weight:800}
+[data-theme="dark"] table.grid td.done{background:#173527}
+table.grid td button{background:none; border:none; font:inherit; color:inherit; padding:0}
+/* bottom nav */
+nav.bottom{position:fixed; left:0; right:0; bottom:0; z-index:50; background:var(--card); border-top:1px solid var(--line); display:flex; padding:6px 6px calc(6px + env(safe-area-inset-bottom)); box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+nav.bottom button{flex:1; background:none; border:none; border-radius:12px; padding:7px 2px; font-size:11.5px; font-weight:700; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:2px}
+nav.bottom button .ic{font-size:20px}
+nav.bottom button.on{color:var(--indigo); background:var(--gold-soft)}
+[data-theme="dark"] nav.bottom button.on{color:var(--gold)}
+@media(min-width:920px){ nav.bottom{left:50%; transform:translateX(-50%); max-width:560px; border:1px solid var(--line); border-bottom:none; border-radius:16px 16px 0 0} }
+/* toast */
+#toast{position:fixed; left:50%; bottom:104px; transform:translate(-50%,20px); background:#23263a; color:#fff; padding:11px 18px; border-radius:99px; font-size:14px; font-weight:600; opacity:0; pointer-events:none; transition:all .25s; z-index:90; box-shadow:var(--shadow); max-width:88vw; text-align:center}
+#toast.show{opacity:1; transform:translate(-50%,0)}
+/* modal */
+.modal{position:fixed; inset:0; z-index:70; display:none; align-items:center; justify-content:center; padding:18px; background:rgba(15,17,30,.5)}
+.modal.show{display:flex}
+.modal .box{background:var(--sheet); border-radius:16px; padding:18px; width:100%; max-width:520px; max-height:86vh; overflow-y:auto; box-shadow:var(--shadow)}
+.modal h3{margin:0 0 8px}
+.keyrow{border:1px solid var(--line); border-radius:12px; padding:11px 12px; margin-bottom:9px; background:var(--card)}
+.keyrow .st{font-size:12px; font-weight:800}
+.st.ok{color:var(--ok)} .st.ng{color:var(--bad)} .st.unk{color:var(--muted)}
+.check li{margin:5px 0}
+.empty{padding:34px 16px; text-align:center; color:var(--muted)}
+.empty .big{font-size:40px; margin-bottom:8px}
+details.help{border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin-bottom:10px; background:var(--card)}
+details.help summary{font-weight:700; cursor:pointer}
+details.help p,details.help li{font-size:13.5px; line-height:1.75}
+.printArea{display:none}
+@media print{
+  body>*{display:none !important}
+  body{padding:0; background:#fff}
+  .printArea{display:block !important; color:#000}
+  .printArea .page{page-break-after:always; padding:6mm 4mm}
+  .printArea h3{margin:0 0 4mm; font-size:15px; border-bottom:2px solid #333; padding-bottom:2mm}
+  .printArea h4{margin:5mm 0 1.5mm; font-size:13px}
+  .printArea p{font-size:12px; line-height:1.9; white-space:pre-wrap; margin:0}
+  .printArea .meta{font-size:11px; color:#444}
+}
+</style>
+</head>
+<body>
+<header>
+  <img src="icon.png" alt="">
+  <div>
+    <div class="ttl">所見AIアシスタント</div>
+    <div class="sub">通知表・指導要録の所見づくりを、もっと速く、もっと素敵に</div>
+  </div>
+  <div class="sp"></div>
+  <button class="hbtn" id="themeBtn">🌙 ダーク</button>
+</header>
+<main>
+  <!-- ======= ホーム ======= -->
+  <section class="view" id="view-home">
+    <h2 class="sec">📚 クラス</h2>
+    <div id="classList"></div>
+    <div class="row">
+      <button class="btn primary" id="addClassBtn">＋ クラスを追加</button>
+      <button class="btn" id="demoBtn">サンプルで試す</button>
+    </div>
+    <h2 class="sec">💡 使い方のヒント</h2>
+    <div class="card">
+      <p class="muted" style="margin:2px 0;line-height:1.8">
+        クラスを開いて児童生徒を選び、所見を書きます。文例は「📚 文例」ボタンから必要なときだけ開けます。
+        AIを使う場合は「✨ AIアシスト」から。APIキーがなくても、<b>プロンプトのコピー</b>（無料のチャットAIに貼るだけ）と文例の組み合わせで十分に使えます。
+        詳しくは「設定」タブの「使い方ガイド」をご覧ください。
+      </p>
+    </div>
+  </section>
+
+  <!-- ======= 編集 ======= -->
+  <section class="view" id="view-edit">
+    <div id="editEmpty" class="empty" style="display:none">
+      <div class="big">✏️</div>
+      まずホームでクラスを選んでください。<br><br>
+      <button class="btn primary" data-goto="home">ホームへ</button>
+    </div>
+    <div id="editMain" style="display:none">
+      <div class="row" style="margin-bottom:10px">
+        <select id="selClass" class="grow"></select>
+        <select id="selDoc"></select>
+        <select id="selTerm"></select>
+      </div>
+      <div class="editorWrap">
+        <div class="studentlist" id="studentList"></div>
+        <div>
+          <div class="pager">
+            <button class="pnav" id="prevStu">◀</button>
+            <div class="who">
+              <div class="nm" id="stuName">―</div>
+              <div class="muted small" id="stuProg">―</div>
+            </div>
+            <button class="pnav" id="nextStu">▶</button>
+          </div>
+          <div class="chips" id="subjChips"></div>
+          <label class="lb">事実・様子のメモ（AI生成のもとになります）</label>
+          <textarea class="ta" id="memoTa" rows="3" placeholder="例）漢字の学習に毎日粘り強く取り組んだ。音読発表会では声の抑揚を工夫して堂々と発表した。"></textarea>
+          <label class="lb">所見本文</label>
+          <textarea class="ta" id="bodyTa" rows="8" placeholder="ここに所見を書きます。文例やAIの提案を挿入して仕上げることもできます。"></textarea>
+          <div class="meter" id="meter"><div class="bar"><i id="meterFill" style="width:0%"></i></div><div class="cnt" id="meterCnt">0 文字</div></div>
+          <div class="row">
+            <span class="saveState" id="saveState">保存済み</span>
+            <span class="grow"></span>
+            <button class="btn small" id="histBtn">🕒 履歴</button>
+            <button class="btn small" id="checkBtn">✔ 簡易チェック</button>
+            <button class="btn small" id="copyBodyBtn">本文コピー</button>
+          </div>
+          <div class="actionbar">
+            <button class="btn" id="openTmplBtn" style="flex:1;justify-content:center;padding:13px">📚 文例から挿入</button>
+            <button class="aiBtn" id="openAiBtn">✨ AIアシスト</button>
+          </div>
+          <div class="actionbar">
+            <button class="btn primary" id="saveBtn" style="flex:1;justify-content:center;padding:13px">💾 保存して次へ進む</button>
+          </div>
+          <p class="muted small">入力は自動でも保存されます。「保存して次へ進む」は履歴に残して次の児童生徒へ移動します。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======= 文例 ======= -->
+  <section class="view" id="view-tmpl">
+    <h2 class="sec">📚 文例テンプレート</h2>
+    <div class="row" style="margin-bottom:10px">
+      <input class="txtin grow" id="tmplSearch" placeholder="文例を検索">
+      <select id="tmplCatFilter"><option value="">全カテゴリ</option></select>
+      <button class="btn primary" id="addTmplBtn">＋ 文例を追加</button>
+    </div>
+    <div id="tmplList"></div>
+    <div class="row">
+      <button class="btn" id="tmplExportBtn">CSVで書き出し</button>
+      <button class="btn" id="tmplImportBtn">CSVから読み込み</button>
+      <input type="file" id="tmplFile" accept=".csv,text/csv" style="display:none">
+    </div>
+    <p class="muted small">旧デスクトップ版で書き出した文例CSVも読み込めます（列名：文例／カテゴリ／校種／お気に入り）。</p>
+  </section>
+
+  <!-- ======= 仕上げ ======= -->
+  <section class="view" id="view-finish">
+    <h2 class="sec">🏁 仕上げ・出力</h2>
+    <div id="finishEmpty" class="empty" style="display:none"><div class="big">🏁</div>クラスを選ぶと、進捗と出力が使えます。<br><br><button class="btn primary" data-goto="home">ホームへ</button></div>
+    <div id="finishMain" style="display:none">
+      <div class="row" style="margin-bottom:10px">
+        <select id="finClass" class="grow"></select>
+        <select id="finDoc"></select>
+        <select id="finTerm"></select>
+      </div>
+      <div class="card">
+        <div class="row"><b>進捗ダッシュボード</b><span class="grow"></span><span class="muted" id="finSummary"></span></div>
+        <div class="gridwrap" style="margin-top:10px"><table class="grid" id="finGrid"></table></div>
+        <p class="muted small">マスの ○ を押すと、その児童生徒・教科の編集画面に移動します。</p>
+      </div>
+      <div class="card">
+        <b>チェック</b>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="simBtn">🔍 類似コメントチェック</button>
+          <button class="btn" id="blankBtn">📋 未入力チェック</button>
+        </div>
+        <div id="checkResult" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <b>一括AI下書き</b>
+        <p class="muted small" style="line-height:1.7">メモが入っている児童生徒について、選んでいる教科の所見をAIが順番に下書きします（既に本文がある場合は上書きしません）。APIキーが未登録の場合は使えません。</p>
+        <div class="row">
+          <select id="batchSubj" class="grow"></select>
+          <button class="btn gold" id="batchBtn">🧠 一括下書きを開始</button>
+          <button class="btn danger" id="batchStopBtn" style="display:none">停止</button>
+        </div>
+        <div id="batchLog" class="small" style="margin-top:8px;line-height:1.8"></div>
+      </div>
+      <div class="card">
+        <b>出力・バックアップ</b>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="csvBtn">📊 一覧CSVを書き出し</button>
+          <button class="btn" id="printBtn">🖨 個票を印刷／PDF</button>
+          <button class="btn" id="backupBtn">💾 全データのバックアップ</button>
+          <button class="btn" id="restoreBtn">📥 バックアップから復元</button>
+          <input type="file" id="backupFile" accept=".json,application/json" style="display:none">
+        </div>
+        <p class="muted small" style="line-height:1.7">指導要録は5年間の保存が必要です。年度末には「全データのバックアップ」でJSONを書き出し、年度名をつけて保管してください。一覧CSVはExcelでそのまま開けます。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======= 設定 ======= -->
+  <section class="view" id="view-settings">
+    <h2 class="sec">⚙️ 設定</h2>
+    <div class="card">
+      <b>🤖 AIのAPIキー</b>
+      <p class="muted small" style="line-height:1.75">キーは<b>この端末の中だけ</b>に保存され、外部に送信されるのはAIへの文章生成リクエストだけです。上のキーから順に使い、利用上限などで失敗すると<b>自動で次のキーに切り替えて</b>再試行します。無料枠のある Google Gemini がおすすめです。</p>
+      <div id="keyList"></div>
+      <div class="row">
+        <button class="btn primary" id="addKeyBtn">＋ キーを追加</button>
+        <button class="btn" id="guideKeyBtn">キーの取得方法</button>
+      </div>
+    </div>
+    <div class="card">
+      <b>📝 文章の目安</b>
+      <label class="lb">目標の最小文字数</label>
+      <input type="number" class="txtin" id="setMinChars" min="0" max="2000" style="width:130px">
+      <label class="lb">目標の最大文字数</label>
+      <input type="number" class="txtin" id="setMaxChars" min="0" max="3000" style="width:130px">
+      <label class="lb">文章の結び方</label>
+      <select id="setEnding" class="txtin">
+        <option>〜ができました。（標準）</option>
+        <option>〜に取り組みました。</option>
+        <option>丁寧で温かい文体</option>
+        <option>簡潔で端的な文体</option>
+      </select>
+      <p class="muted small">AI生成の指定と、文字数メーターの目安に使われます。</p>
+    </div>
+    <div class="card">
+      <b>🎨 表示</b>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="themeBtn2">🌙 ダークモード切替</button>
+      </div>
+    </div>
+    <h2 class="sec">📖 使い方ガイド</h2>
+    <details class="help"><summary>基本の流れ</summary>
+      <p>1. ホームでクラスを追加し、名簿（出席番号と氏名）を登録します。名簿は改行区切りの貼り付けでも一括登録できます。<br>
+      2. 「書く」画面で児童生徒と教科を選び、メモと本文を書きます。入力は自動保存されます。<br>
+      3. 文例は「📚 文例から挿入」、AIは「✨ AIアシスト」から、必要なときだけ開いて使います。<br>
+      4. 「仕上げ」画面で進捗・類似チェックを確認し、CSVや印刷で出力します。</p>
+    </details>
+    <details class="help"><summary>APIキーなしでAIを使う（プロンプトのコピー）</summary>
+      <p>「✨ AIアシスト」→「📋 プロンプト」タブで、メモと設定からAIへの指示文（プロンプト）を自動で作ります。それをコピーして、無料のチャットAI（ChatGPT、Gemini、Claudeなど）の画面に貼ると所見文が得られます。戻ってきた文章は同じタブの「結果を本文に反映」から取り込めます。キー登録も料金も不要です。</p>
+    </details>
+    <details class="help"><summary>キーの自動切替（フェイルオーバー）</summary>
+      <p>キーを複数登録しておくと、生成に失敗したとき（利用上限・混雑など）に自動で次のキーを試します。Geminiと他社を混ぜて登録しても構いません。どのキーで生成できたかは画面に表示されます。</p>
+    </details>
+    <details class="help"><summary>個人情報の扱いについて</summary>
+      <p>データはお使いの端末のブラウザ内に保存されます。AI機能を使うときだけ、入力したメモと本文が各AI事業者に送信されます。学校の情報セキュリティポリシーに従い、実名の扱いなどは各校のルールに合わせてご利用ください（メモには出席番号やイニシャルで書く運用も可能です）。</p>
+    </details>
+    <div class="card" style="text-align:center">
+      <img src="icon.png" style="width:56px;height:56px;border-radius:13px" alt="">
+      <p style="margin:8px 0 2px"><b>所見AIアシスタント Web版</b></p>
+      <p class="muted small" style="margin:0;line-height:1.8">このアプリはAIアシスタント「Muse」と一緒に作りました。<br>
+      <a href="https://muse.ai/join" target="_blank" rel="noopener">Muse を試す</a>（紹介コード：84A2JY／参加後48時間以内に設定で入力すると特典があります）</p>
+    </div>
+  </section>
+</main>
+
+<!-- bottom nav -->
+<nav class="bottom" id="bottomNav">
+  <button data-view="home"><span class="ic">🏠</span>ホーム</button>
+  <button data-view="edit"><span class="ic">✏️</span>書く</button>
+  <button data-view="tmpl"><span class="ic">📚</span>文例</button>
+  <button data-view="finish"><span class="ic">🏁</span>仕上げ</button>
+  <button data-view="settings"><span class="ic">⚙️</span>設定</button>
+</nav>
+
+<!-- template sheet -->
+<div class="backdrop" id="backdrop"></div>
+<div class="sheet" id="tmplSheet">
+  <div class="grab"></div>
+  <h3>📚 文例から挿入 <span class="muted small">（タップでカーソル位置に挿入）</span></h3>
+  <div class="row" style="margin-bottom:10px">
+    <input class="txtin grow" id="sheetTmplSearch" placeholder="文例を検索">
+    <select id="sheetTmplCat"><option value="">全カテゴリ</option></select>
+  </div>
+  <div class="body" id="sheetTmplList"></div>
+</div>
+
+<!-- AI sheet -->
+<div class="sheet" id="aiSheet">
+  <div class="grab"></div>
+  <h3>✨ AIアシスト <span class="muted small" id="aiKeyState"></span></h3>
+  <div class="segtabs" id="aiTabs">
+    <button data-tab="gen" class="on">🤖 文章を作る</button>
+    <button data-tab="proof">🩹 添削する</button>
+    <button data-tab="prompt">📋 プロンプト</button>
+  </div>
+  <div class="body">
+    <div id="aiTabGen">
+      <p class="muted small" style="margin-top:0;line-height:1.7">「事実・様子のメモ」をもとに、設定した文字数と結び方で所見文を作ります。</p>
+      <button class="btn gold block" id="aiGenBtn" style="padding:13px">✨ AIで文章を作る</button>
+    </div>
+    <div id="aiTabProof" style="display:none">
+      <p class="muted small" style="margin-top:0;line-height:1.7">いま本文に入っている文章を、事実は変えずに自然で温かい所見文に整えます。</p>
+      <button class="btn gold block" id="aiProofBtn" style="padding:13px">🩹 AIで添削する</button>
+    </div>
+    <div id="aiTabPrompt" style="display:none">
+      <p class="muted small" style="margin-top:0;line-height:1.7">APIキー不要の方法です。下の指示文をコピーして無料のチャットAIに貼ると、同じ品質の所見文が得られます。</p>
+      <textarea class="ta" id="promptOut" rows="7" readonly></textarea>
+      <div class="row" style="margin:10px 0">
+        <button class="btn primary" id="copyPromptBtn">📋 プロンプトをコピー</button>
+        <button class="btn" id="regenPromptBtn">最新の内容で作り直す</button>
+      </div>
+      <label class="lb">チャットAIの回答を貼り付け</label>
+      <textarea class="ta" id="promptPaste" rows="4" placeholder="チャットAIが作った所見文をここに貼り付けます"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn gold" id="pasteReflectBtn">この文章を本文に反映</button>
+      </div>
+    </div>
+    <div id="aiBusy" style="display:none;text-align:center;padding:16px" class="muted">⏳ AIが考えています…<br><span class="small" id="aiBusyKey"></span></div>
+    <div id="aiResultWrap" style="display:none;margin-top:12px">
+      <label class="lb">AIの提案 <span class="muted small" id="aiUsedKey"></span></label>
+      <textarea class="ta" id="aiResult" rows="6"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn gold" id="aiInsertBtn">⬇ この文章を本文に反映</button>
+        <button class="btn" id="aiRetryBtn">もう一度</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- generic modal -->
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+
+<div id="toast"></div>
+<div class="printArea" id="printArea"></div>
+<script>
+"use strict";
+/* ============ 定数 ============ */
+const LS_KEY = "shoken_web_v1";
+const SCHOOL_TYPES = {
+  elem:"小学校", junior:"中学校", high:"高等学校",
+  snel:"特別支援学級（小学校）", snjh:"特別支援学級（中学校）",
+  snse:"特別支援学校（小学部）", snsj:"特別支援学校（中学部）", snsh:"特別支援学校（高等部）"
+};
+const isSpecial = t => typeof t === "string" && t.indexOf("sn") === 0;
+const SUBJECTS = {
+  elem:["国語","社会","算数","理科","生活","音楽","図画工作","家庭","体育","外国語","道徳","総合的な学習の時間","特別活動","総合所見"],
+  junior:["国語","社会","数学","理科","音楽","美術","保健体育","技術・家庭","外国語","道徳","総合的な学習の時間","特別活動","部活動","総合所見"],
+  high:["総合所見","特別活動","部活動","進路・その他"],
+  snel:["国語","算数","生活","音楽","図画工作","体育","道徳","自立活動","総合所見"],
+  snjh:["国語","数学","社会","理科","音楽","美術","保健体育","技術・家庭","外国語","道徳","自立活動","作業学習","総合所見"],
+  snse:["国語","算数","生活","音楽","図工","体育","道徳","自立活動","総合所見"],
+  snsj:["国語","数学","社会","理科","音楽","美術","保健体育","技術・家庭","外国語","道徳","自立活動","作業学習","総合所見"],
+  snsh:["国語","数学","社会","理科","音楽","美術","保健体育","職業","外国語","道徳","自立活動","作業学習","進路","総合所見"]
+};
+const TERMS = { "3":["1学期","2学期","3学期"], "2":["前期","後期"] };
+const DOCS = ["通知表","指導要録"];
+const PROVIDERS = {
+  gemini:{ label:"Google Gemini（無料枠あり）", models:["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-2.5-pro"], hint:"Google AI Studio（aistudio.google.com）で無料発行できます" },
+  groq:{ label:"Groq（無料枠あり）", baseUrl:"https://api.groq.com/openai/v1", models:["llama-3.3-70b-versatile","llama-3.1-8b-instant"], hint:"Groq Cloud（console.groq.com）で無料発行できます" },
+  openrouter:{ label:"OpenRouter", baseUrl:"https://openrouter.ai/api/v1", models:["google/gemini-2.0-flash-exp:free","meta-llama/llama-3.3-70b-instruct"], hint:"openrouter.ai で発行。一部モデルは無料です" },
+  openai:{ label:"OpenAI", baseUrl:"https://api.openai.com/v1", models:["gpt-4o-mini","gpt-4o"], hint:"OpenAI Platform で発行（従量課金）" },
+  anthropic:{ label:"Anthropic Claude", models:["claude-sonnet-4-5","claude-haiku-4-5"], hint:"Anthropic Console で発行（従量課金）" },
+  custom:{ label:"OpenAI互換（カスタムURL）", baseUrl:"", models:[], hint:"ベースURLとモデル名を手入力します" }
+};
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const nowStr = () => { const d = new Date(); return d.getFullYear() + "/" + (d.getMonth()+1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); };
+
+/* ============ データ ============ */
+function seedTemplates(){
+  const T = (text, cat, school) => ({ id: uid() + Math.random().toString(36).slice(2,5), text, cat, school, fav:false });
+  return [
+    T("漢字の学習に毎日粘り強く取り組み、新出漢字を丁寧に練習して確実に身に付けることができました。","学習","小学校"),
+    T("音読発表会では、声の抑揚や間の取り方を工夫し、堂々と発表することができました。","学習","小学校"),
+    T("算数の問題では、図や表に表して考えるなど、自分なりの工夫をしながら粘り強く取り組む姿が見られました。","学習","小学校"),
+    T("実験の結果を予想と比べて考察し、自分の言葉で分かりやすくまとめることができました。","学習","中学校"),
+    T("授業では要点を押さえてノートを整理し、疑問点を質問するなど、主体的に学ぶ姿勢が育ってきました。","学習","中学校"),
+    T("定期テストに向けて計画的に学習を進め、苦手な分野にも根気強く取り組むことができました。","学習","高等学校"),
+    T("係の仕事に責任をもって取り組み、学級のみんなのために進んで行動する姿が印象的でした。","生活・態度","共通"),
+    T("友達の気持ちを考えながら言葉を選んで話すなど、思いやりのある関わりが増えてきました。","生活・態度","共通"),
+    T("あいさつや返事がしっかりとでき、場に応じた礼儀正しい態度で生活することができました。","生活・態度","共通"),
+    T("道徳の時間には、登場人物の気持ちに寄り添って考え、自分の生活と結び付けて振り返ることができました。","道徳・心の成長","共通"),
+    T("運動会の練習では、仲間と声を掛け合いながら最後まであきらめずに取り組むことができました。","特別活動・行事","共通"),
+    T("委員会活動では、学校全体のことを考えてアイデアを出し、実行に移すことができました。","特別活動・行事","共通"),
+    T("朝の会で自分の気持ちを言葉で伝える練習を続け、短い言葉で思いを伝えられる場面が増えてきました。","コミュニケーション","特別支援"),
+    T("気持ちが不安定になったとき、気持ちカードを使って自分で落ち着く方法を選べるようになってきました。","自立活動","特別支援"),
+    T("身支度や片付けの手順表を見ながら、一人で最後までやり遂げることができるようになりました。","自立活動","特別支援"),
+    T("給食の準備では、自分の役割を覚え、友達と協力しながらてきぱきと進めることができました。","生活・健康","特別支援"),
+    T("作業学習では、手順を確認しながら丁寧に製品作りに取り組み、完成させる喜びを味わうことができました。","作業学習・進路","特別支援"),
+    T("校内実習では、時間を意識して休まず作業を続け、報告・連絡・相談の大切さを学ぶことができました。","作業学習・進路","特別支援"),
+    T("苦手なことにも挑戦しようとする気持ちが育ち、「やってみる」と自分から言える場面が増えてきました。","総合・結び","特別支援"),
+    T("一年を通して大きく成長し、できることがたくさん増えました。次の学年でも、その良さを発揮してくれることを期待しています。","総合・結び","共通")
+  ];
+}
+function defaultDB(){
+  return {
+    classes: [], students: [], records: {}, templates: seedTemplates(),
+    settings: { minChars: 120, maxChars: 250, ending: "〜ができました。（標準）", theme: "light", keys: [] },
+    ui: { view: "home", classId: null, doc: "通知表", term: "1学期", studentId: null, subject: null, finClassId: null }
+  };
+}
+let DB;
+function loadDB(){
+  try { const raw = localStorage.getItem(LS_KEY); if (raw) { const d = JSON.parse(raw); if (d && d.classes) return d; } } catch(e){}
+  return defaultDB();
+}
+function saveDB(){ try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); } catch(e){ toast("保存容量がいっぱいです。バックアップを書き出してください"); } }
+DB = loadDB();
+const ui = DB.ui;
+
+/* ============ ユーティリティ ============ */
+let toastTimer = null;
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+function openModal(html){ $("modalBox").innerHTML = html; $("modal").classList.add("show"); }
+function closeModal(){ $("modal").classList.remove("show"); }
+$("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
+function download(name, content, type){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([content], { type: type || "text/plain;charset=utf-8" }));
+  a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+const clsOf = id => DB.classes.find(c => c.id === id);
+const studentsOf = cid => DB.students.filter(s => s.classId === cid).sort((a,b) => (a.no||0) - (b.no||0));
+const recKey = (cid, sid, doc, term, subj) => [cid, sid, doc, term, subj].join("|");
+const getRec = (cid, sid, doc, term, subj) => DB.records[recKey(cid, sid, doc, term, subj)] || { text:"", memo:"", history:[] };
+function termsOf(cls){ return cls.docType === "y" ? ["年度末"] : (TERMS[cls.termSys] || TERMS["3"]); }
+function classProgress(cid, doc, term){
+  const cls = clsOf(cid); if (!cls) return { done:0, total:0 };
+  const stus = studentsOf(cid); let done = 0;
+  stus.forEach(s => cls.subjects.forEach(sub => { if (getRec(cid, s.id, doc, term, sub).text.trim()) done++; }));
+  return { done, total: stus.length * cls.subjects.length };
+}
+
+/* ============ 画面遷移 ============ */
+function goto(view){
+  ui.view = view; saveDB();
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  $("view-" + view).classList.add("active");
+  document.querySelectorAll("#bottomNav button").forEach(b => b.classList.toggle("on", b.dataset.view === view));
+  if (view === "home") renderHome();
+  if (view === "edit") renderEditor();
+  if (view === "tmpl") renderTemplates();
+  if (view === "finish") renderFinish();
+  if (view === "settings") renderSettings();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll("#bottomNav button").forEach(b => b.addEventListener("click", () => goto(b.dataset.view)));
+document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", () => goto(b.dataset.goto)));
+
+/* ============ テーマ ============ */
+function applyTheme(){
+  document.documentElement.dataset.theme = DB.settings.theme === "dark" ? "dark" : "";
+  const label = DB.settings.theme === "dark" ? "☀ ライト" : "🌙 ダーク";
+  $("themeBtn").textContent = label; $("themeBtn2").textContent = DB.settings.theme === "dark" ? "☀ ライトモードに切替" : "🌙 ダークモードに切替";
+}
+function toggleTheme(){ DB.settings.theme = DB.settings.theme === "dark" ? "light" : "dark"; saveDB(); applyTheme(); }
+$("themeBtn").addEventListener("click", toggleTheme);
+$("themeBtn2").addEventListener("click", toggleTheme);
+
+/* ============ ホーム ============ */
+function renderHome(){
+  const wrap = $("classList");
+  if (!DB.classes.length){
+    wrap.innerHTML = '<div class="empty"><div class="big">📚</div>まだクラスがありません。<br>「＋ クラスを追加」から始めるか、「サンプルで試す」で操作感を確認できます。</div>';
+    return;
+  }
+  wrap.innerHTML = "";
+  DB.classes.forEach(cls => {
+    const term = termsOf(cls)[0];
+    const p = classProgress(cls.id, ui.doc === "指導要録" && cls ? "指導要録" : "通知表", term);
+    const p2 = classProgress(cls.id, "指導要録", "年度末");
+    const pct = p.total ? Math.round(p.done / p.total * 100) : 0;
+    const div = document.createElement("div"); div.className = "classcard";
+    div.innerHTML =
+      '<div class="grow"><div class="nm">' + esc(cls.name) + '</div>' +
+      '<div class="muted small" style="margin-top:3px"><span class="badge blue">' + esc(SCHOOL_TYPES[cls.type] || "") + '</span> ' +
+      esc(cls.year) + '年度 ・ ' + studentsOf(cls.id).length + '名</div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="muted small" style="margin-top:4px">通知表（' + esc(term) + '）' + p.done + '/' + p.total + ' 件 ・ 指導要録 ' + p2.done + '/' + p2.total + ' 件</div></div>' +
+      '<button class="btn small" data-menu="' + cls.id + '">⋯</button>';
+    div.addEventListener("click", e => {
+      if (e.target.dataset.menu) return;
+      ui.classId = cls.id; ui.finClassId = cls.id; ui.studentId = null; ui.subject = null; saveDB(); goto("edit");
+    });
+    div.querySelector("[data-menu]").addEventListener("click", () => classMenu(cls.id));
+    wrap.appendChild(div);
+  });
+}
+$("addClassBtn").addEventListener("click", () => classForm(null));
+$("demoBtn").addEventListener("click", () => {
+  if (DB.classes.some(c => c.demo)) { toast("サンプルは追加済みです"); return; }
+  const mk = (name, type, kids) => {
+    const cls = { id: uid(), name, year: String(new Date().getFullYear()), type, termSys: "3", subjects: SUBJECTS[type].slice(), demo: true };
+    DB.classes.push(cls);
+    kids.forEach((k, i) => {
+      const stu = { id: uid() + i, classId: cls.id, no: i + 1, name: k[0] };
+      DB.students.push(stu);
+      cls.subjects.slice(0, 2).forEach((sub, j) => {
+        if (k[1] && j === 0) DB.records[recKey(cls.id, stu.id, "通知表", "1学期", sub)] = { text: "", memo: k[1], history: [] };
+      });
+    });
+    return cls;
+  };
+  mk("サンプル 3年2組", "elem", [
+    ["山田 葵", "漢字の学習に毎日粘り強く取り組んだ。音読発表会では抑揚を工夫して堂々と発表できた。"],
+    ["佐藤 蓮", "算数では図に表して考える工夫が見られた。係の仕事にも責任をもって取り組んだ。"],
+    ["鈴木 そら", "友達の気持ちを考えて言葉を選んで話せる。実験では予想と結果を比べて考察できた。"]
+  ]);
+  mk("サンプル 特別支援学級", "snel", [
+    ["高橋 ゆい", "気持ちカードを使って、自分で落ち着く方法を選べる場面が増えた。朝の身支度も手順表を見て一人でできるようになった。"],
+    ["田中 はると", "作業学習で手順を確認しながら丁寧に取り組めた。給食の準備では友達と協力できた。"]
+  ]);
+  saveDB(); renderHome(); toast("サンプルクラスを2つ追加しました");
+});
+function classMenu(cid){
+  const cls = clsOf(cid);
+  openModal('<h3>' + esc(cls.name) + '</h3>' +
+    '<div class="row" style="flex-direction:column;align-items:stretch;gap:9px">' +
+    '<button class="btn" id="cmRoster">👥 名簿の編集</button>' +
+    '<button class="btn" id="cmEdit">✏️ クラスの設定を変更</button>' +
+    '<button class="btn danger" id="cmDel">🗑 このクラスを削除</button>' +
+    '<button class="btn" id="cmClose">閉じる</button></div>');
+  $("cmClose").addEventListener("click", closeModal);
+  $("cmRoster").addEventListener("click", () => rosterForm(cid));
+  $("cmEdit").addEventListener("click", () => classForm(cid));
+  $("cmDel").addEventListener("click", () => {
+    if (!confirm("クラス「" + cls.name + "」と、その所見データをすべて削除します。よろしいですか？")) return;
+    DB.classes = DB.classes.filter(c => c.id !== cid);
+    const sids = new Set(DB.students.filter(s => s.classId === cid).map(s => s.id));
+    DB.students = DB.students.filter(s => s.classId !== cid);
+    Object.keys(DB.records).forEach(k => { const p = k.split("|"); if (p[0] === cid || sids.has(p[1])) delete DB.records[k]; });
+    if (ui.classId === cid) ui.classId = null;
+    saveDB(); closeModal(); renderHome(); toast("削除しました");
+  });
+}
+function classForm(cid){
+  const cls = cid ? clsOf(cid) : null;
+  const typeOpts = Object.keys(SCHOOL_TYPES).map(k => '<option value="' + k + '"' + (cls && cls.type === k ? " selected" : "") + '>' + SCHOOL_TYPES[k] + '</option>').join("");
+  openModal('<h3>' + (cls ? "クラスの設定" : "クラスを追加") + '</h3>' +
+    '<label class="lb">クラス名</label><input class="txtin" id="cfName" style="width:100%" value="' + esc(cls ? cls.name : "") + '" placeholder="例）3年2組">' +
+    '<label class="lb">年度</label><input class="txtin" id="cfYear" style="width:120px" value="' + esc(cls ? cls.year : new Date().getFullYear()) + '">' +
+    '<label class="lb">校種・学級種別</label><select class="txtin" id="cfType" style="width:100%">' + typeOpts + '</select>' +
+    '<label class="lb">学期制</label><select class="txtin" id="cfTermSys"><option value="3"' + (cls && cls.termSys === "3" ? " selected" : "") + '>3学期制</option><option value="2"' + (cls && cls.termSys === "2" ? " selected" : "") + '>2学期制（前期・後期）</option></select>' +
+    '<label class="lb">教科・領域（1行に1つ）</label><textarea class="ta" id="cfSubjects" rows="7">' + esc(cls ? cls.subjects.join("\n") : SUBJECTS.elem.join("\n")) + '</textarea>' +
+    (cls ? "" : '<label class="lb">名簿（1行に1人。「番号 名前」または名前のみ）</label><textarea class="ta" id="cfRoster" rows="6" placeholder="1 山田 葵&#10;2 佐藤 蓮"></textarea>') +
+    '<div class="row" style="margin-top:14px"><button class="btn primary grow" id="cfSave" style="justify-content:center">保存</button><button class="btn" id="cfCancel">キャンセル</button></div>');
+  $("cfType").addEventListener("change", () => { if (!cls) $("cfSubjects").value = SUBJECTS[$("cfType").value].join("\n"); });
+  $("cfCancel").addEventListener("click", closeModal);
+  $("cfSave").addEventListener("click", () => {
+    const name = $("cfName").value.trim(); if (!name) { toast("クラス名を入力してください"); return; }
+    const subjects = $("cfSubjects").value.split("\n").map(s => s.trim()).filter(Boolean);
+    if (!subjects.length) { toast("教科を1つ以上入力してください"); return; }
+    if (cls){
+      cls.name = name; cls.year = $("cfYear").value.trim(); cls.type = $("cfType").value; cls.termSys = $("cfTermSys").value; cls.subjects = subjects;
+    } else {
+      const nc = { id: uid(), name, year: $("cfYear").value.trim() || String(new Date().getFullYear()), type: $("cfType").value, termSys: $("cfTermSys").value, subjects };
+      DB.classes.push(nc);
+      parseRoster(nc.id, $("cfRoster").value);
+      ui.classId = nc.id; ui.finClassId = nc.id;
+    }
+    saveDB(); closeModal(); toast("保存しました");
+    if (ui.view === "home") renderHome(); else goto("edit");
+  });
+}
+function parseRoster(cid, text){
+  text.split("\n").map(s => s.trim()).filter(Boolean).forEach((line, i) => {
+    const m = line.match(/^(\d+)[\s,、]*(\S.*)$/);
+    const no = m ? parseInt(m[1], 10) : i + 1;
+    const name = m ? m[2].trim() : line;
+    DB.students.push({ id: uid() + i + Math.random().toString(36).slice(2,4), classId: cid, no, name });
+  });
+}
+function rosterForm(cid){
+  const cls = clsOf(cid);
+  const lines = studentsOf(cid).map(s => s.no + " " + s.name).join("\n");
+  openModal('<h3>名簿の編集 ― ' + esc(cls.name) + '</h3>' +
+    '<p class="muted small">1行に1人、「番号 名前」の形式です。行を消すとその児童生徒も削除されます（所見データも消えます）。</p>' +
+    '<textarea class="ta" id="rfText" rows="12">' + esc(lines) + '</textarea>' +
+    '<div class="row" style="margin-top:12px"><button class="btn primary grow" id="rfSave" style="justify-content:center">保存</button><button class="btn" id="rfCancel">キャンセル</button></div>');
+  $("rfCancel").addEventListener("click", closeModal);
+  $("rfSave").addEventListener("click", () => {
+    const keep = new Map(studentsOf(cid).map(s => [s.no + "|" + s.name, s]));
+    const next = [];
+    $("rfText").value.split("\n").map(s => s.trim()).filter(Boolean).forEach((line, i) => {
+      const m = line.match(/^(\d+)[\s,、]*(\S.*)$/);
+      const no = m ? parseInt(m[1], 10) : i + 1;
+      const name = m ? m[2].trim() : line;
+      const old = keep.get(no + "|" + name);
+      next.push(old || { id: uid() + i, classId: cid, no, name });
+    });
+    const nextIds = new Set(next.map(s => s.id));
+    DB.students.filter(s => s.classId === cid && !nextIds.has(s.id)).forEach(s => {
+      Object.keys(DB.records).forEach(k => { if (k.split("|")[1] === s.id) delete DB.records[k]; });
+    });
+    DB.students = DB.students.filter(s => s.classId !== cid).concat(next);
+    saveDB(); closeModal(); toast("名簿を保存しました"); renderHome();
+  });
+}
+</script>
+<script>
+"use strict";
+/* ============ 編集画面 ============ */
+let openedText = "";
+let saveDebounce = null;
+function curCls(){ return clsOf(ui.classId); }
+function curStu(){ return DB.students.find(s => s.id === ui.studentId); }
+function curRec(){ return getRec(ui.classId, ui.studentId, ui.doc, ui.term, ui.subject); }
+function fillTermSelect(sel, cls, doc, current){
+  const terms = doc === "指導要録" ? ["年度末"] : (TERMS[cls.termSys] || TERMS["3"]);
+  sel.innerHTML = terms.map(t => "<option" + (t === current ? " selected" : "") + ">" + t + "</option>").join("");
+  return terms;
+}
+function renderEditor(){
+  const has = !!curCls();
+  $("editEmpty").style.display = has ? "none" : "";
+  $("editMain").style.display = has ? "" : "none";
+  if (!has) return;
+  const cls = curCls();
+  $("selClass").innerHTML = DB.classes.map(c => '<option value="' + c.id + '"' + (c.id === cls.id ? " selected" : "") + ">" + esc(c.name) + "</option>").join("");
+  $("selDoc").innerHTML = DOCS.map(d => "<option" + (d === ui.doc ? " selected" : "") + ">" + d + "</option>").join("");
+  const terms = fillTermSelect($("selTerm"), cls, ui.doc, ui.term);
+  if (!terms.includes(ui.term)) ui.term = terms[0];
+  const stus = studentsOf(cls.id);
+  if (!stus.length){
+    $("stuName").textContent = "名簿が空です";
+    $("stuProg").textContent = "ホームのクラスメニュー（⋯）から名簿を登録してください";
+    $("subjChips").innerHTML = ""; $("memoTa").value = ""; $("bodyTa").value = ""; updateMeter(); return;
+  }
+  if (!stus.some(s => s.id === ui.studentId)) ui.studentId = stus[0].id;
+  if (!cls.subjects.includes(ui.subject)) ui.subject = cls.subjects[0];
+  // student list (PC)
+  $("studentList").innerHTML = "";
+  stus.forEach(s => {
+    const doneCnt = cls.subjects.filter(sub => getRec(cls.id, s.id, ui.doc, ui.term, sub).text.trim()).length;
+    const b = document.createElement("button");
+    if (s.id === ui.studentId) b.className = "on";
+    b.innerHTML = "<span>" + s.no + ". " + esc(s.name) + '</span><span class="mini">' + doneCnt + "/" + cls.subjects.length + "</span>";
+    b.addEventListener("click", () => { ui.studentId = s.id; saveDB(); renderEditor(); });
+    $("studentList").appendChild(b);
+  });
+  const stu = curStu();
+  const idx = stus.findIndex(s => s.id === stu.id);
+  $("stuName").textContent = stu.no + "番 " + stu.name;
+  const myDone = cls.subjects.filter(sub => getRec(cls.id, stu.id, ui.doc, ui.term, sub).text.trim()).length;
+  $("stuProg").textContent = (idx + 1) + " / " + stus.length + " 人 ・ この子の入力済み " + myDone + "/" + cls.subjects.length + " 件";
+  // subject chips
+  $("subjChips").innerHTML = "";
+  cls.subjects.forEach(sub => {
+    const b = document.createElement("button");
+    b.className = "chip" + (sub === ui.subject ? " on" : "") + (getRec(cls.id, stu.id, ui.doc, ui.term, sub).text.trim() ? " done" : "");
+    b.innerHTML = esc(sub) + '<span class="dot"></span>';
+    b.addEventListener("click", () => { ui.subject = sub; saveDB(); fillEditorBody(); renderEditorSoft(); });
+    $("subjChips").appendChild(b);
+  });
+  fillEditorBody();
+}
+function renderEditorSoft(){ /* チップと進捗だけ更新 */
+  const cls = curCls(); if (!cls) return;
+  const stu = curStu(); if (!stu) return;
+  document.querySelectorAll("#subjChips .chip").forEach((el, i) => {
+    const sub = cls.subjects[i];
+    el.classList.toggle("on", sub === ui.subject);
+    el.classList.toggle("done", !!getRec(cls.id, stu.id, ui.doc, ui.term, sub).text.trim());
+  });
+}
+function fillEditorBody(){
+  const rec = curRec();
+  $("memoTa").value = rec.memo || "";
+  $("bodyTa").value = rec.text || "";
+  openedText = rec.text || "";
+  $("saveState").textContent = rec.updatedAt ? "保存済み（" + rec.updatedAt + "）" : "保存済み";
+  $("saveState").classList.remove("dirty");
+  updateMeter();
+}
+function pushHistoryText(txt){
+  const cls = curCls(), stu = curStu(); if (!cls || !stu) return;
+  if (!txt || !txt.trim()) return;
+  const k = recKey(cls.id, stu.id, ui.doc, ui.term, ui.subject);
+  const rec = DB.records[k] || { text: "", memo: "", history: [] };
+  if (rec.history[0] === txt) return;
+  rec.history.unshift(txt); rec.history = rec.history.slice(0, 10);
+  DB.records[k] = rec; saveDB();
+}
+function persistCurrent(pushHist){
+  const cls = curCls(), stu = curStu(); if (!cls || !stu) return;
+  if (pushHist) pushHistoryText(openedText);
+  const k = recKey(cls.id, stu.id, ui.doc, ui.term, ui.subject);
+  const rec = DB.records[k] || { text: "", memo: "", history: [] };
+  rec.text = $("bodyTa").value; rec.memo = $("memoTa").value; rec.updatedAt = nowStr();
+  DB.records[k] = rec; DB.ui = ui; saveDB();
+}
+function updateMeter(){
+  const n = $("bodyTa").value.length;
+  const min = DB.settings.minChars, max = DB.settings.maxChars;
+  const pct = max ? Math.min(100, Math.round(n / max * 100)) : 0;
+  $("meterFill").style.width = pct + "%";
+  $("meter").classList.toggle("over", max > 0 && n > max);
+  $("meterCnt").textContent = n + " 文字" + (min || max ? "（目安 " + min + "〜" + max + "）" : "");
+}
+$("selClass").addEventListener("change", e => { ui.classId = e.target.value; ui.finClassId = ui.classId; ui.studentId = null; ui.subject = null; saveDB(); renderEditor(); });
+$("selDoc").addEventListener("change", e => { ui.doc = e.target.value; const cls = curCls(); const terms = fillTermSelect($("selTerm"), cls, ui.doc, ui.term); ui.term = terms[0]; saveDB(); renderEditor(); });
+$("selTerm").addEventListener("change", e => { ui.term = e.target.value; saveDB(); renderEditor(); });
+$("prevStu").addEventListener("click", () => stepStudent(-1));
+$("nextStu").addEventListener("click", () => stepStudent(1));
+function stepStudent(d){
+  const stus = studentsOf(ui.classId); if (!stus.length) return;
+  persistCurrent(false);
+  let i = stus.findIndex(s => s.id === ui.studentId);
+  i = (i + d + stus.length) % stus.length;
+  ui.studentId = stus[i].id; saveDB(); renderEditor();
+}
+["memoTa", "bodyTa"].forEach(id => {
+  $(id).addEventListener("input", () => {
+    $("saveState").textContent = "編集中…"; $("saveState").classList.add("dirty");
+    if (id === "bodyTa") updateMeter();
+    clearTimeout(saveDebounce);
+    saveDebounce = setTimeout(() => {
+      persistCurrent(false);
+      $("saveState").textContent = "自動保存しました（" + nowStr() + "）"; $("saveState").classList.remove("dirty");
+      renderEditorSoft();
+    }, 500);
+  });
+});
+$("saveBtn").addEventListener("click", () => {
+  persistCurrent(true);
+  openedText = $("bodyTa").value;
+  toast("保存しました。次の児童生徒へ進みます");
+  const stus = studentsOf(ui.classId);
+  const i = stus.findIndex(s => s.id === ui.studentId);
+  if (i < stus.length - 1) { ui.studentId = stus[i + 1].id; saveDB(); renderEditor(); }
+  else renderEditor();
+});
+$("histBtn").addEventListener("click", () => {
+  const rec = curRec();
+  if (!rec.history || !rec.history.length) { toast("履歴はまだありません"); return; }
+  openModal("<h3>🕒 変更履歴（最新10件）</h3>" + rec.history.map((h, i) =>
+    '<div class="tmplItem"><div class="tx">' + esc(h) + '</div><div class="meta"><button class="btn small" data-restore="' + i + '">この内容に戻す</button></div></div>').join("") +
+    '<button class="btn block" onclick="document.getElementById(\'modal\').classList.remove(\'show\')">閉じる</button>');
+  document.querySelectorAll("[data-restore]").forEach(b => b.addEventListener("click", () => {
+    pushHistoryText($("bodyTa").value);
+    $("bodyTa").value = rec.history[parseInt(b.dataset.restore, 10)];
+    persistCurrent(false); fillEditorBody(); closeModal(); toast("復元しました");
+  }));
+});
+$("copyBodyBtn").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("bodyTa").value); toast("本文をコピーしました"); }
+  catch(e){ $("bodyTa").select(); document.execCommand("copy"); toast("本文をコピーしました"); }
+});
+$("checkBtn").addEventListener("click", () => {
+  const issues = localCheck($("bodyTa").value);
+  openModal("<h3>✔ 簡易チェック</h3>" + (issues.length
+    ? '<ul class="check">' + issues.map(i => "<li>" + esc(i) + "</li>").join("") + "</ul>"
+    : '<p>✅ 気になる点は見つかりませんでした。</p>') +
+    '<button class="btn block" onclick="document.getElementById(\'modal\').classList.remove(\'show\')">閉じる</button>');
+});
+function localCheck(text){
+  const issues = [];
+  const n = text.length;
+  if (!n) return ["本文が空です。"];
+  if (DB.settings.minChars && n < DB.settings.minChars) issues.push("文字数が少なめです（" + n + "文字／目安 " + DB.settings.minChars + "〜" + DB.settings.maxChars + "）。");
+  if (DB.settings.maxChars && n > DB.settings.maxChars) issues.push("文字数が多めです（" + n + "文字／目安 " + DB.settings.minChars + "〜" + DB.settings.maxChars + "）。");
+  const sentences = text.split("。").filter(s => s.trim());
+  const endings = sentences.map(s => { const m = s.trim().match(/(ました|でした|います|です|ました|きます|せます|れます)$/); return m ? m[1] : null; });
+  for (let i = 1; i < endings.length; i++) if (endings[i] && endings[i] === endings[i-1]) { issues.push("同じ文末（〜" + endings[i] + "）が続いています。表現を変えると読みやすくなります。"); break; }
+  if (/です・ます|ましたでしょうか/.test(text)) issues.push("文体の表記ゆれが疑われる箇所があります。");
+  if (!/[。]$/.test(text.trim())) issues.push("最後の文が「。」で終わっていません。");
+  return issues;
+}
+
+/* ============ シート共通 ============ */
+function openSheet(id){
+  $("backdrop").classList.add("show");
+  document.querySelectorAll(".sheet").forEach(s => s.classList.remove("show"));
+  $(id).classList.add("show");
+}
+function closeSheets(){ $("backdrop").classList.remove("show"); document.querySelectorAll(".sheet").forEach(s => s.classList.remove("show")); }
+$("backdrop").addEventListener("click", closeSheets);
+
+/* ============ 文例シート＆文例画面 ============ */
+function tmplCats(){ return Array.from(new Set(DB.templates.map(t => t.cat))).sort(); }
+function fillCatSelect(sel, allLabel){
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">' + allLabel + "</option>" + tmplCats().map(c => "<option" + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>").join("");
+}
+function tmplMatches(t, q, cat){
+  if (cat && t.cat !== cat) return false;
+  if (q && t.text.indexOf(q) < 0 && t.cat.indexOf(q) < 0) return false;
+  return true;
+}
+function sortedTemplates(list){
+  return list.slice().sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
+}
+function renderSheetTemplates(){
+  const q = $("sheetTmplSearch").value.trim(), cat = $("sheetTmplCat").value;
+  const list = sortedTemplates(DB.templates.filter(t => tmplMatches(t, q, cat)));
+  $("sheetTmplList").innerHTML = list.length ? "" : '<p class="muted">該当する文例がありません。</p>';
+  list.forEach(t => {
+    const b = document.createElement("button"); b.className = "tmplItem";
+    b.innerHTML = '<div class="tx">' + esc(t.text) + '</div><div class="meta"><span class="badge">' + esc(t.cat) + '</span><span class="badge blue">' + esc(t.school) + "</span>" + (t.fav ? '<span style="color:var(--gold)">★</span>' : "") + "</div>";
+    b.addEventListener("click", () => { insertAtCursor($("bodyTa"), t.text); closeSheets(); toast("文例を挿入しました"); });
+    $("sheetTmplList").appendChild(b);
+  });
+}
+function insertAtCursor(ta, text){
+  const s = ta.selectionStart || ta.value.length, e = ta.selectionEnd || ta.value.length;
+  ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = s + text.length;
+  ta.dispatchEvent(new Event("input"));
+}
+$("openTmplBtn").addEventListener("click", () => { fillCatSelect($("sheetTmplCat"), "全カテゴリ"); renderSheetTemplates(); openSheet("tmplSheet"); });
+$("sheetTmplSearch").addEventListener("input", renderSheetTemplates);
+$("sheetTmplCat").addEventListener("change", renderSheetTemplates);
+
+function renderTemplates(){
+  fillCatSelect($("tmplCatFilter"), "全カテゴリ");
+  const q = $("tmplSearch").value.trim(), cat = $("tmplCatFilter").value;
+  const list = sortedTemplates(DB.templates.filter(t => tmplMatches(t, q, cat)));
+  const wrap = $("tmplList");
+  wrap.innerHTML = list.length ? "" : '<div class="empty">文例がありません。</div>';
+  list.forEach(t => {
+    const div = document.createElement("div"); div.className = "tmplItem";
+    div.innerHTML = '<div class="tx">' + esc(t.text) + '</div><div class="meta"><span class="badge">' + esc(t.cat) + '</span><span class="badge blue">' + esc(t.school) + '</span><span class="grow"></span>' +
+      '<button class="fav" data-fav="' + t.id + '">' + (t.fav ? "★" : "☆") + '</button>' +
+      '<button class="btn small" data-edit="' + t.id + '">編集</button>' +
+      '<button class="btn small danger" data-del="' + t.id + '">削除</button></div>';
+    div.querySelector("[data-fav]").addEventListener("click", () => { t.fav = !t.fav; saveDB(); renderTemplates(); });
+    div.querySelector("[data-edit]").addEventListener("click", () => tmplForm(t.id));
+    div.querySelector("[data-del]").addEventListener("click", () => { if (confirm("この文例を削除しますか？")) { DB.templates = DB.templates.filter(x => x.id !== t.id); saveDB(); renderTemplates(); } });
+    wrap.appendChild(div);
+  });
+}
+$("tmplSearch").addEventListener("input", renderTemplates);
+$("tmplCatFilter").addEventListener("change", renderTemplates);
+$("addTmplBtn").addEventListener("click", () => tmplForm(null));
+function tmplForm(id){
+  const t = id ? DB.templates.find(x => x.id === id) : null;
+  openModal("<h3>" + (t ? "文例の編集" : "文例を追加") + "</h3>" +
+    '<label class="lb">文例</label><textarea class="ta" id="tfText" rows="4">' + esc(t ? t.text : "") + "</textarea>" +
+    '<label class="lb">カテゴリ</label><input class="txtin" id="tfCat" style="width:100%" list="catList" value="' + esc(t ? t.cat : "") + '" placeholder="例）学習／自立活動"><datalist id="catList">' + tmplCats().map(c => "<option>" + esc(c) + "</option>").join("") + "</datalist>" +
+    '<label class="lb">対象</label><select class="txtin" id="tfSchool"><option' + (t && t.school === "共通" ? " selected" : "") + '>共通</option><option' + (t && t.school === "小学校" ? " selected" : "") + '>小学校</option><option' + (t && t.school === "中学校" ? " selected" : "") + '>中学校</option><option' + (t && t.school === "高等学校" ? " selected" : "") + '>高等学校</option><option' + (t && t.school === "特別支援" ? " selected" : "") + '>特別支援</option></select>' +
+    '<div class="row" style="margin-top:14px"><button class="btn primary grow" id="tfSave" style="justify-content:center">保存</button><button class="btn" id="tfCancel">キャンセル</button></div>');
+  $("tfCancel").addEventListener("click", closeModal);
+  $("tfSave").addEventListener("click", () => {
+    const text = $("tfText").value.trim(); if (!text) { toast("文例を入力してください"); return; }
+    const cat = $("tfCat").value.trim() || "その他";
+    if (t) { t.text = text; t.cat = cat; t.school = $("tfSchool").value; }
+    else DB.templates.push({ id: uid(), text, cat, school: $("tfSchool").value, fav: false });
+    saveDB(); closeModal(); renderTemplates(); toast("保存しました");
+  });
+}
+function parseCSV(text){
+  const rows = []; let row = [], field = "", inQ = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQ){ if (c === '"'){ if (text[i+1] === '"'){ field += '"'; i++; } else inQ = false; } else field += c; }
+    else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n" || c === "\r"){ if (c === "\r" && text[i+1] === "\n") i++; row.push(field); field = ""; if (row.length > 1 || row[0]) rows.push(row); row = []; }
+    else field += c;
+  }
+  row.push(field); if (row.length > 1 || row[0]) rows.push(row);
+  return rows;
+}
+function csvCell(s){ s = String(s == null ? "" : s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+$("tmplExportBtn").addEventListener("click", () => {
+  const rows = [["文例","カテゴリ","校種","お気に入り"]].concat(DB.templates.map(t => [t.text, t.cat, t.school, t.fav ? "1" : ""]));
+  download("文例テンプレート.csv", "\ufeff" + rows.map(r => r.map(csvCell).join(",")).join("\r\n"), "text/csv;charset=utf-8");
+  toast("文例CSVを書き出しました");
+});
+$("tmplImportBtn").addEventListener("click", () => $("tmplFile").click());
+$("tmplFile").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const rows = parseCSV(String(r.result));
+    let added = 0;
+    rows.forEach((row, i) => {
+      if (!row.length) return;
+      const text = (row[0] || "").trim();
+      if (!text || (i === 0 && /文例|テキスト|text/i.test(text))) return;
+      DB.templates.push({ id: uid() + i, text, cat: (row[1] || "その他").trim(), school: (row[2] || "共通").trim(), fav: /1|★|true/i.test(row[3] || "") });
+      added++;
+    });
+    saveDB(); renderTemplates(); toast(added + "件の文例を読み込みました");
+  };
+  r.readAsText(f, "UTF-8");
+  e.target.value = "";
+});
+</script>
+<script>
+"use strict";
+/* ============ AI呼び出し（複数キー・自動切替） ============ */
+async function callProvider(entry, prompt){
+const prov = PROVIDERS[entry.provider];
+const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("タイムアウトしました")), 60000));
+let req;
+if (entry.provider === "gemini"){
+req = fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(entry.model) + ":generateContent?key=" + encodeURIComponent(entry.key), {
+method: "POST", headers: { "Content-Type": "application/json"},
+body: JSON.stringify({ contents: [{ parts: [{ text: prompt}]}], generationConfig: { temperature: 0.7}})
+}).then(async r => {
+const j = await r.json().catch(() => ({}));
+if (!r.ok) throw new Error((j.error && j.error.message) || ("HTTP " + r.status));
+const t = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(p => p.text || "").join("");
+if (!t) throw new Error("応答が空でした");
+return t;
+});
+} else if (entry.provider === "anthropic"){
+req = fetch("https://api.anthropic.com/v1/messages", {
+method: "POST",
+headers: { "Content-Type": "application/json", "x-api-key": entry.key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true"},
+body: JSON.stringify({ model: entry.model, max_tokens: 1200, messages: [{ role: "user", content: prompt}]})
+}).then(async r => {
+const j = await r.json().catch(() => ({}));
+if (!r.ok) throw new Error((j.error && j.error.message) || ("HTTP " + r.status));
+const t = (j.content || []).map(p => p.text || "").join("");
+if (!t) throw new Error("応答が空でした");
+return t;
+});
+} else {
+const base = (entry.baseUrl || prov.baseUrl || "").replace(/\/$/, "");
+if (!base) throw new Error("ベースURLが未設定です");
+req = fetch(base + "/chat/completions", {
+method: "POST",
+headers: { "Content-Type": "application/json", "Authorization": "Bearer " + entry.key},
+body: JSON.stringify({ model: entry.model, messages: [{ role: "user", content: prompt}], temperature: 0.7})
+}).then(async r => {
+const j = await r.json().catch(() => ({}));
+if (!r.ok) throw new Error((j.error && j.error.message) || ("HTTP " + r.status));
+const t = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+if (!t) throw new Error("応答が空でした");
+return t;
+});
+}
+return Promise.race([req, timeout]);
+}
+async function aiGenerate(prompt, onTry){
+const keys = DB.settings.keys;
+if (!keys.length) throw new Error("APIキーが登録されていません。「プロンプト」タブの方法ならキーなしで使えます。");
+const errs = [];
+for (const entry of keys){
+if (onTry) onTry(entry);
+try {
+const text = await callProvider(entry, prompt);
+return { text: text.trim(), entry};
+} catch(e){ errs.push(entry.label + "：" + e.message);}
+}
+throw new Error("すべてのキーで失敗しました。" + errs.join(" / "));
+}
+
+/* ============ プロンプト ============ */
+function buildGenPrompt(){
+const cls = curCls(), stu = curStu();
+const s = DB.settings;
+const lines = [];
+lines.push("あなたは日本の学校の担任教師を支援する、所見作成の専門家です。");
+lines.push("次の条件で、" + ui.doc + "に記載する所見文を作成してください。");
+lines.push("" + (SCHOOL_TYPES[cls.type] || "") + "／" + cls.name + "／児童生徒：" + stu.name + "さん");
+lines.push("" + ui.subject + "（" + ui.term + "）");
+if (ui.doc === "指導要録") lines.push("指導要録の所見です。1年間の成長と変容を総括する文体で、次年度への引き継ぎに役立つ具体性を含めてください。");
+if (isSpecial(cls.type)) lines.push("個別の指導計画の目標に即し、小さな成長や変化の兆しを具体的に捉えてください。できるようになったこと、支援の手立てによって表れた姿を、前向きで温かい表現で書いてください。できないことの列挙は避けてください。");
+lines.push("");
+lines.push($("memoTa").value.trim() || "（メモなし。一般的な所見として作成）");
+lines.push("");
+lines.push("・文字数：" + s.minChars + "〜" + s.maxChars + "文字程度");
+lines.push("・文体：丁寧な「です・ます」調。結び方は「" + s.ending + "」を意識してください。");
+lines.push("・メモにない事実を作らないこと。具体的なエピソードはメモの範囲で表現すること。");
+lines.push("・前向きで温かい表現にし、否定的な言い回しは避けること。");
+lines.push("・所見文の本文だけを出力し、見出しや説明は付けないこと。");
+return lines.join("\n");
+}
+function buildProofPrompt(){
+const s = DB.settings;
+return [
+"次の所見文を、事実や内容は変えずに、自然で温かく、読みやすい日本の学校の所見文に整えてください。",
+"・「です・ます」調に統一し、文末の繰り返しを避けてください。",
+"・文字数はおおよそ " + s.minChars + "〜" + s.maxChars + " 文字を目安にしてください（大きく外れる場合は調整）。",
+"・整えた本文だけを出力し、説明や見出しは付けないでください。",
+"",
+$("bodyTa").value
+].join("\n");
+}
+
+/* ============ AIシート ============ */
+let lastAiMode = "gen";
+function refreshAiKeyState(){
+const n = DB.settings.keys.length;
+$("aiKeyState").textContent = n? "（登録キー " + n + " 件・自動切替あり）": "（キー未登録：プロンプト方式が使えます）";
+}
+$("openAiBtn").addEventListener("click", () => {
+refreshAiKeyState();
+$("promptOut").value = buildGenPrompt();
+openSheet("aiSheet");
+});
+document.querySelectorAll("#aiTabs button").forEach(b => b.addEventListener("click", () => {
+document.querySelectorAll("#aiTabs button").forEach(x => x.classList.toggle("on", x === b));
+["gen","proof","prompt"].forEach(t => $("aiTab" + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t === b.dataset.tab? "": "none");
+if (b.dataset.tab === "prompt") $("promptOut").value = buildGenPrompt();
+}));
+async function runAi(mode){
+lastAiMode = mode;
+const prompt = mode === "gen"? buildGenPrompt(): buildProofPrompt();
+if (mode === "proof" &&!$("bodyTa").value.trim()) { toast("添削する本文が空です"); return;}
+$("aiBusy").style.display = ""; $("aiResultWrap").style.display = "none";
+try {
+const r = await aiGenerate(prompt, entry => { $("aiBusyKey").textContent = entry.label + " で生成中…";});
+$("aiResult").value = r.text;
+$("aiUsedKey").textContent = "（" + r.entry.label + " で生成）";
+$("aiResultWrap").style.display = "";
+} catch(e){ toast(e.message);}
+$("aiBusy").style.display = "none";
+}
+$("aiGenBtn").addEventListener("click", () => runAi("gen"));
+$("aiProofBtn").addEventListener("click", () => runAi("proof"));
+$("aiRetryBtn").addEventListener("click", () => runAi(lastAiMode));
+$("aiInsertBtn").addEventListener("click", () => {
+pushHistoryText($("bodyTa").value);
+$("bodyTa").value = $("aiResult").value;
+persistCurrent(false); fillEditorBody(); renderEditorSoft();
+closeSheets(); toast("本文に反映しました");
+});
+$("copyPromptBtn").addEventListener("click", async () => {
+try { await navigator.clipboard.writeText($("promptOut").value); toast("プロンプトをコピーしました。無料のチャットAIに貼ってください");}
+catch(e){ $("promptOut").select(); document.execCommand("copy"); toast("プロンプトをコピーしました");}
+});
+$("regenPromptBtn").addEventListener("click", () => { $("promptOut").value = buildGenPrompt(); toast("最新の内容で作り直しました");});
+$("pasteReflectBtn").addEventListener("click", () => {
+const t = $("promptPaste").value.trim();
+if (!t) { toast("貼り付ける文章が空です"); return;}
+pushHistoryText($("bodyTa").value);
+$("bodyTa").value = t;
+persistCurrent(false); fillEditorBody(); renderEditorSoft();
+closeSheets(); toast("本文に反映しました");
+});
+
+/* ============ 仕上げ画面 ============ */
+function renderFinish(){
+const has = DB.classes.length > 0;
+$("finishEmpty").style.display = has? "none": "";
+$("finishMain").style.display = has? "": "none";
+if (!has) return;
+if (!clsOf(ui.finClassId)) ui.finClassId = DB.classes[0].id;
+const cls = clsOf(ui.finClassId);
+$("finClass").innerHTML = DB.classes.map(c => '<option value="' + c.id + '"' + (c.id === cls.id? " selected": "") + ">" + esc(c.name) + "</option>").join("");
+$("finDoc").innerHTML = DOCS.map(d => "<option" + (d === ui.doc? " selected": "") + ">" + d + "</option>").join("");
+const terms = fillTermSelect($("finTerm"), cls, ui.doc, ui.term);
+if (!terms.includes(ui.term)) ui.term = terms[0];
+$("finTerm").value = ui.term;
+$("batchSubj").innerHTML = cls.subjects.map(s => "<option>" + esc(s) + "</option>").join("");
+const stus = studentsOf(cls.id);
+const p = classProgress(cls.id, ui.doc, ui.term);
+$("finSummary").textContent = "入力済み " + p.done + " / " + p.total + " 件";
+let html = "<tr><th>児童生徒</th>" + cls.subjects.map(s => "<th>" + esc(s) + "</th>").join("") + "</tr>";
+stus.forEach(stu => {
+html += "<tr><td>" + stu.no + ". " + esc(stu.name) + "</td>" + cls.subjects.map(sub => {
+const has2 = getRec(cls.id, stu.id, ui.doc, ui.term, sub).text.trim();
+return '<td class="' + (has2? "done": "") + '"><button data-jump="' + stu.id + "|" + esc(sub) + '">' + (has2? "○": "・") + "</button></td>";
+}).join("") + "</tr>";
+});
+$("finGrid").innerHTML = html;
+document.querySelectorAll("[data-jump]").forEach(b => b.addEventListener("click", () => {
+const parts = b.dataset.jump.split("|");
+ui.classId = cls.id; ui.studentId = parts[0]; ui.subject = parts[1]; saveDB(); goto("edit");
+}));
+}
+$("finClass").addEventListener("change", e => { ui.finClassId = e.target.value; saveDB(); renderFinish();});
+$("finDoc").addEventListener("change", e => { ui.doc = e.target.value; saveDB(); renderFinish();});
+$("finTerm").addEventListener("change", e => { ui.term = e.target.value; saveDB(); renderFinish();});
+function bigramSim(a, b){
+const grams = s => { const m = new Map(); const t = s.replace(/\s/g, ""); for (let i = 0; i < t.length - 1; i++){ const g = t.slice(i, i + 2); m.set(g, (m.get(g) || 0) + 1);} return m;};
+const A = grams(a), B = grams(b); let inter = 0, tot = 0;
+A.forEach((v, k) => { tot += v; if (B.has(k)) inter += Math.min(v, B.get(k));});
+B.forEach(v => tot += v);
+return tot? (2 * inter) / tot: 0;
+}
+$("simBtn").addEventListener("click", () => {
+const cls = clsOf(ui.finClassId);
+const items = [];
+studentsOf(cls.id).forEach(stu => cls.subjects.forEach(sub => {
+const t = getRec(cls.id, stu.id, ui.doc, ui.term, sub).text.trim();
+if (t) items.push({ label: stu.name + "（" + sub + "）", text: t});
+}));
+const hits = [];
+for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++){
+const sim = bigramSim(items[i].text, items[j].text);
+if (sim >= 0.55) hits.push({ a: items[i].label, b: items[j].label, sim: Math.round(sim * 100)});
+}
+hits.sort((x, y) => y.sim - x.sim);
+$("checkResult").innerHTML = hits.length
+? '<p class="small" style="line-height:1.9">⚠ 似ている組み合わせが ' + hits.length + ' 件あります。<br>' + hits.slice(0, 15).map(h => "・" + esc(h.a) + " ⇔ " + esc(h.b) + "（類似度 " + h.sim + "%）").join("<br>") + "</p>"
+: '<p class="small">✅ 酷似したコメントは見つかりませんでした。</p>';
+});
+$("blankBtn").addEventListener("click", () => {
+const cls = clsOf(ui.finClassId);
+const blanks = [];
+studentsOf(cls.id).forEach(stu => {
+const miss = cls.subjects.filter(sub =>!getRec(cls.id, stu.id, ui.doc, ui.term, sub).text.trim());
+if (miss.length) blanks.push(stu.name + "（未入力：" + miss.join("、") + "）");
+});
+$("checkResult").innerHTML = blanks.length
+? '<p class="small" style="line-height:1.9">📋 未入力が ' + blanks.length + ' 名分あります。<br>' + blanks.map(esc).join("<br>") + "</p>"
+: '<p class="small">✅ 全員・全教科の入力が完了しています。</p>';
+});
+let batchStop = false;
+$("batchBtn").addEventListener("click", async () => {
+const cls = clsOf(ui.finClassId);
+const sub = $("batchSubj").value;
+if (!DB.settings.keys.length) { toast("APIキーが未登録のため一括下書きは使えません"); return;}
+batchStop = false;
+$("batchBtn").disabled = true; $("batchStopBtn").style.display = "";
+const log = m => { $("batchLog").innerHTML += esc(m) + "<br>";};
+$("batchLog").innerHTML = "";
+const savedUi = { classId: ui.classId, studentId: ui.studentId, subject: ui.subject};
+let done = 0, skipped = 0;
+for (const stu of studentsOf(cls.id)){
+if (batchStop) { log("⏹ 停止しました"); break;}
+const k = recKey(cls.id, stu.id, ui.doc, ui.term, sub);
+const rec = DB.records[k] || { text: "", memo: "", history: []};
+if (rec.text.trim()) { skipped++; continue;}
+if (!rec.memo ||!rec.memo.trim()) { skipped++; continue;}
+ui.classId = cls.id; ui.studentId = stu.id; ui.subject = sub;
+$("memoTa").value = rec.memo; $("bodyTa").value = "";
+try {
+const r = await aiGenerate(buildGenPrompt());
+rec.text = r.text; rec.updatedAt = nowStr(); DB.records[k] = rec; saveDB();
+done++; log("✅ " + stu.name + "（" + r.entry.label + "）");
+} catch(e){ log("⚠ " + stu.name + "：" + e.message);}
+}
+ui.classId = savedUi.classId; ui.studentId = savedUi.studentId; ui.subject = savedUi.subject; saveDB();
+log("完了：作成 " + done + " 件／スキップ " + skipped + " 件");
+$("batchBtn").disabled = false; $("batchStopBtn").style.display = "none";
+renderFinish();
+});
+$("batchStopBtn").addEventListener("click", () => { batchStop = true;});
+$("csvBtn").addEventListener("click", () => {
+const cls = clsOf(ui.finClassId);
+const rows = [["出席番号","氏名"].concat(cls.subjects)];
+studentsOf(cls.id).forEach(stu => rows.push([stu.no, stu.name].concat(cls.subjects.map(sub => getRec(cls.id, stu.id, ui.doc, ui.term, sub).text))));
+download(cls.name + "_" + ui.doc + "_" + ui.term + "_一覧.csv", "\ufeff" + rows.map(r => r.map(csvCell).join(",")).join("\r\n"), "text/csv;charset=utf-8");
+toast("一覧CSVを書き出しました");
+});
+$("printBtn").addEventListener("click", () => {
+const cls = clsOf(ui.finClassId);
+let html = "";
+studentsOf(cls.id).forEach(stu => {
+html += '<div class="page"><h3>' + esc(cls.name) + "　" + esc(ui.doc) + " 所見（" + esc(ui.term) + "）</h3>" +
+'<div class="meta">' + esc(cls.year) + "年度 ／ " + esc(SCHOOL_TYPES[cls.type] || "") + " ／ " + stu.no + "番 " + esc(stu.name) + "</div>";
+cls.subjects.forEach(sub => {
+const t = getRec(cls.id, stu.id, ui.doc, ui.term, sub).text.trim();
+if (t) html += "<h4></h4><p>" + esc(t) + "</p>";
+});
+html += "</div>";
+});
+$("printArea").innerHTML = html || '<div class="page">印刷できる所見がありません。</div>';
+window.print();
+});
+$("backupBtn").addEventListener("click", () => {
+download("所見AI_バックアップ_" + new Date().toISOString().slice(0, 10) + ".json", JSON.stringify(DB, null, 1), "application/json");
+toast("バックアップを書き出しました");
+});
+$("restoreBtn").addEventListener("click", () => $("backupFile").click());
+$("backupFile").addEventListener("change", e => {
+const f = e.target.files[0]; if (!f) return;
+const r = new FileReader();
+r.onload = () => {
+try {
+const d = JSON.parse(String(r.result));
+if (!d ||!Array.isArray(d.classes)) throw new Error("形式が違います");
+if (!confirm("現在のデータを、バックアップの内容で置き換えます。よろしいですか？")) return;
+DB = d; saveDB(); applyTheme(); goto("home"); toast("復元しました");
+} catch(err){ toast("復元できませんでした：" + err.message);}
+};
+r.readAsText(f, "UTF-8");
+e.target.value = "";
+});
+
+/* ============ 設定画面 ============ */
+function renderSettings(){
+$("setMinChars").value = DB.settings.minChars;
+$("setMaxChars").value = DB.settings.maxChars;
+$("setEnding").value = DB.settings.ending;
+const wrap = $("keyList");
+wrap.innerHTML = DB.settings.keys.length? "": '<p class="muted small">まだキーが登録されていません。キーなしでも「プロンプト方式」でAIが使えます。</p>';
+DB.settings.keys.forEach((k, i) => {
+const div = document.createElement("div"); div.className = "keyrow";
+div.innerHTML = '<div class="row"><b>' + (i + 1) + ". " + esc(k.label) + '</b><span class="badge">' + esc(PROVIDERS[k.provider].label) + '</span><span class="st unk" data-st>未テスト</span><span class="grow"></span>' +
+'<button class="btn small" data-test>🔌 接続テスト</button>' +
+'<button class="btn small" data-up ' + (i === 0? "disabled": "") + '>↑</button>' +
+'<button class="btn small" data-del style="color:var(--bad)">削除</button></div>' +
+'<div class="muted small" style="margin-top:4px">モデル：' + esc(k.model) + (k.baseUrl? " ／ " + esc(k.baseUrl): "") + "</div>";
+div.querySelector("[data-del]").addEventListener("click", () => { DB.settings.keys.splice(i, 1); saveDB(); renderSettings();});
+div.querySelector("[data-up]").addEventListener("click", () => { const t = DB.settings.keys[i-1]; DB.settings.keys[i-1] = DB.settings.keys[i]; DB.settings.keys[i] = t; saveDB(); renderSettings();});
+div.querySelector("[data-test]").addEventListener("click", async ev => {
+const st = div.querySelector("[data-st]"); st.textContent = "接続中…"; st.className = "st unk"; ev.target.disabled = true;
+try { await callProvider(k, "接続テストです。「OK」とだけ返してください。"); st.textContent = "接続OK"; st.className = "st ok";}
+catch(e){ st.textContent = "失敗：" + e.message; st.className = "st ng";}
+ev.target.disabled = false;
+});
+wrap.appendChild(div);
+});
+}
+["setMinChars","setMaxChars"].forEach(id => $(id).addEventListener("change", () => {
+DB.settings.minChars = Math.max(0, parseInt($("setMinChars").value, 10) || 0);
+DB.settings.maxChars = Math.max(0, parseInt($("setMaxChars").value, 10) || 0);
+saveDB(); toast("保存しました");
+}));
+$("setEnding").addEventListener("change", () => { DB.settings.ending = $("setEnding").value; saveDB();});
+$("guideKeyBtn").addEventListener("click", () => {
+openModal("<h3>🔑 APIキーの取得方法（無料枠の例）</h3>" +
+"<p style='line-height:1.85;font-size:14px'><b>Google Gemini（おすすめ）</b><br>1. aistudio.google.com にGoogleアカウントでログイン<br>2. 「Get API key」→「Create API key」でキーを発行<br>3. 下の「＋ キーを追加」で Gemini を選び、キーを貼り付けて保存</p>" +
+"<p style='line-height:1.85;font-size:14px'><b>Groq（無料枠あり）</b><br>console.groq.com でアカウントを作り、API Keys から発行します。</p>" +
+"<p style='line-height:1.85;font-size:14px'>キーはこの端末の中だけに保存されます。第三者に教えないでください。利用条件は各事業者の公式情報をご確認ください。</p>" +
+'<button class="btn block" onclick="document.getElementById(\'modal\').classList.remove(\'show\')">閉じる</button>');
+});
+$("addKeyBtn").addEventListener("click", () => {
+const provOpts = Object.keys(PROVIDERS).map(k => '<option value="' + k + '">' + PROVIDERS[k].label + "</option>").join("");
+openModal("<h3>APIキーを追加</h3>" +
+'<label class="lb">事業者</label><select class="txtin" id="kfProv" style="width:100%">' + provOpts + "</select>" +
+'<p class="muted small" id="kfHint"></p>' +
+'<label class="lb">表示名（任意）</label><input class="txtin" id="kfLabel" style="width:100%" placeholder="例）Gemini・メイン">' +
+'<label class="lb">APIキー</label><input class="txtin" id="kfKey" style="width:100%" type="password" placeholder="キーを貼り付け">' +
+'<label class="lb">モデル</label><input class="txtin" id="kfModel" style="width:100%" list="kfModelList"><datalist id="kfModelList"></datalist>' +
+'<div id="kfBaseWrap" style="display:none"><label class="lb">ベースURL</label><input class="txtin" id="kfBase" style="width:100%" placeholder="https://…/v1"></div>' +
+'<div class="row" style="margin-top:14px"><button class="btn primary grow" id="kfSave" style="justify-content:center">登録</button><button class="btn" id="kfCancel">キャンセル</button></div>');
+const syncProv = () => {
+const p = PROVIDERS[$("kfProv").value];
+$("kfHint").textContent = p.hint || "";
+$("kfModelList").innerHTML = (p.models || []).map(m => "<option>" + m + "</option>").join("");
+$("kfModel").value = (p.models || [])[0] || "";
+const needBase = $("kfProv").value === "custom";
+$("kfBaseWrap").style.display = needBase || p.baseUrl? "": "none";
+$("kfBase").value = p.baseUrl || "";
+};
+$("kfProv").addEventListener("change", syncProv); syncProv();
+$("kfCancel").addEventListener("click", closeModal);
+$("kfSave").addEventListener("click", () => {
+const key = $("kfKey").value.trim(); if (!key) { toast("APIキーを入力してください"); return;}
+const prov = $("kfProv").value;
+const entry = { id: uid(), provider: prov, label: $("kfLabel").value.trim() || PROVIDERS[prov].label, key, model: $("kfModel").value.trim() || (PROVIDERS[prov].models || [])[0] || "", baseUrl: $("kfBase").value.trim()};
+if (!entry.model) { toast("モデル名を入力してください"); return;}
+DB.settings.keys.push(entry); saveDB(); closeModal(); renderSettings(); toast("キーを登録しました");
+});
+});
+
+/* ============ 起動 ============ */
+applyTheme();
+goto(ui.view && $("view-" + ui.view)? ui.view: "home");
+</script>
+</body>
+</html>
