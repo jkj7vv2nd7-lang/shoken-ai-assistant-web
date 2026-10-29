@@ -500,11 +500,41 @@ function defaultDB(){
   };
 }
 let DB;
+let storageMode = "local";
+(function probeStorage(){
+  try { localStorage.setItem("__shoken_probe__", "1"); localStorage.removeItem("__shoken_probe__"); }
+  catch(e){ storageMode = "memory"; }
+})();
+function showStorageBanner(){
+  if (document.getElementById("storageBanner")) return;
+  const div = document.createElement("div");
+  div.id = "storageBanner";
+  div.style.cssText = "background:#fdf3d7;border:1px solid #e3d194;color:#6b5510;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.75";
+  div.innerHTML = "<b>⚠ この開き方では、入力したデータを保存できません。</b><br>" +
+    "ファイルのプレビュー表示やプライベートブラウズでは、ブラウザの保存機能が使えないためです。このまま閉じなければ今回の操作は続けられますが、保存するには <b>Safariで公開ページ</b>（https://jkj7vv2nd7-lang.github.io/shoken-ai-assistant-web/）を開いてください。ホーム画面に追加したアイコンから開いても保存できます。" +
+    '<div style="margin-top:8px"><button class="btn small" onclick="this.parentElement.parentElement.remove()">分かりました（閉じる）</button></div>';
+  const main = document.querySelector("main");
+  if (main) main.insertBefore(div, main.firstChild);
+}
 function loadDB(){
+  if (storageMode === "memory") return defaultDB();
   try { const raw = localStorage.getItem(LS_KEY); if (raw) { const d = JSON.parse(raw); if (d && d.classes) return d; } } catch(e){}
   return defaultDB();
 }
-function saveDB(){ try { localStorage.setItem(LS_KEY, JSON.stringify(DB)); } catch(e){ toast("保存容量がいっぱいです。バックアップを書き出してください"); } }
+let quotaWarned = false;
+function saveDB(){
+  const s = JSON.stringify(DB);
+  if (storageMode === "memory") return;
+  try { localStorage.setItem(LS_KEY, s); }
+  catch(e){
+    if (e && (e.name === "QuotaExceededError" || e.code === 22 || e.code === 1014)){
+      if (!quotaWarned){ quotaWarned = true; toast("保存容量がいっぱいです。バックアップを書き出してください"); }
+    } else {
+      storageMode = "memory";
+      showStorageBanner();
+    }
+  }
+}
 DB = loadDB();
 const ui = DB.ui;
 
@@ -1348,6 +1378,7 @@ DB.settings.keys.push(entry); saveDB(); closeModal(); renderSettings(); toast("�
 /* ============ 起動 ============ */
 applyTheme();
 goto(ui.view && $("view-" + ui.view)? ui.view: "home");
+if (storageMode === "memory") showStorageBanner();
 </script>
 </body>
 </html>
